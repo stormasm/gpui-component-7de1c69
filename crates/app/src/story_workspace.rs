@@ -13,7 +13,6 @@ use ui::{
     color_picker::{ColorPicker, ColorPickerEvent},
     dock::{DockArea, DockEvent, DockItem, DockItemState},
     h_flex,
-    popup_menu::PopupMenuExt,
     theme::{ActiveTheme, Colorize as _, Theme},
     ContextModal, IconName, Root, Sizable,
 };
@@ -37,7 +36,6 @@ pub fn init(_app_state: Arc<AppState>, cx: &mut AppContext) {
 
 pub struct StoryWorkspace {
     dock_area: View<DockArea>,
-    locale_selector: View<LocaleSelector>,
     theme_color_picker: View<ColorPicker>,
     last_layout_state: Option<DockItemState>,
     _save_layout_task: Option<Task<()>>,
@@ -79,8 +77,6 @@ impl StoryWorkspace {
         })
         .detach();
 
-        let locale_selector = cx.new_view(LocaleSelector::new);
-
         let theme_color_picker = cx.new_view(|cx| {
             let mut picker = ColorPicker::new("theme-color-picker", cx)
                 .xsmall()
@@ -107,7 +103,6 @@ impl StoryWorkspace {
 
         Self {
             dock_area,
-            locale_selector,
             theme_color_picker,
             last_layout_state: None,
             _save_layout_task: None,
@@ -330,7 +325,6 @@ impl Render for StoryWorkspace {
                                         Theme::change(mode, cx);
                                     }),
                             )
-                            .child(self.locale_selector.clone())
                             .child(
                                 Button::new("github")
                                     .icon(IconName::GitHub)
@@ -374,53 +368,5 @@ impl Render for StoryWorkspace {
             .children(drawer_layer)
             .children(modal_layer)
             .child(div().absolute().top_8().children(notification_layer))
-    }
-}
-
-struct LocaleSelector {
-    focus_handle: FocusHandle,
-}
-
-impl LocaleSelector {
-    pub fn new(cx: &mut ViewContext<Self>) -> Self {
-        Self {
-            focus_handle: cx.focus_handle(),
-        }
-    }
-
-    fn on_select_locale(&mut self, locale: &SelectLocale, cx: &mut ViewContext<Self>) {
-        ui::set_locale(&locale.0);
-        cx.refresh();
-    }
-}
-
-impl Render for LocaleSelector {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        let focus_handle = self.focus_handle.clone();
-        let locale = ui::locale().to_string();
-
-        div()
-            .id("locale-selector")
-            .track_focus(&focus_handle)
-            .on_action(cx.listener(Self::on_select_locale))
-            .child(
-                Button::new("btn")
-                    .small()
-                    .ghost()
-                    .icon(IconName::Globe)
-                    .popup_menu(move |this, _| {
-                        this.menu_with_check(
-                            "English",
-                            locale == "en",
-                            Box::new(SelectLocale("en".into())),
-                        )
-                        .menu_with_check(
-                            "简体中文",
-                            locale == "zh-CN",
-                            Box::new(SelectLocale("zh-CN".into())),
-                        )
-                    })
-                    .anchor(AnchorCorner::TopRight),
-            )
     }
 }
